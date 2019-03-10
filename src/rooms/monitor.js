@@ -7,6 +7,12 @@ class MonitorRoom {
     
     constructor () {
         this.totalConnections = 0
+        /* simulate connectios
+        setInterval(() => {
+            this.totalConnections += 1
+            this.sendChangeConnections()
+        }, 3000)
+        */
         logger.info('monitor.setup')
         emitter.once('socketio listen', this.onSocketListen.bind(this))
     }
