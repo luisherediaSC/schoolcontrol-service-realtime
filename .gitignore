@@ -1,0 +1,14 @@
+node_modules
+logs/*.log
+nohup.out
+npm-debug.log
+.DS_Store
+
+# Editor directories and files
+nbproject
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

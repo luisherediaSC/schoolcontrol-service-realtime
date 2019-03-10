@@ -1,0 +1,22 @@
+{
+    "name": "schoolcontrol-service-realtime",
+    "version": "1.0.0",
+    "description": "Service realtime",
+    "main": "index.js",
+    "scripts": {
+        "dev": "node index.js",
+        "stage": "NODE_ENV=stage node index.js",
+        "prod": "NODE_ENV=prod node index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Luis Josafat Heredia Contreras",
+    "license": "MIT",
+    "dependencies": {
+        "dotenv": "^6.2.0",
+        "mongoose": "^5.4.18",
+        "request": "^2.88.0",
+        "socket.io": "^2.2.0",
+        "validator": "^10.11.0",
+        "winston": "^3.2.1"
+    }
+}
