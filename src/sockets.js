@@ -30,7 +30,7 @@ class Sockets {
     onConnection (socket) {
         logger.info('socket connection %s', socket.id)
         socket.on('join', this.onJoin.bind(this, socket))
-        socket.on('disconnect', this.onDisconnect.bind(this, socket))
+        socket.on('disconnect', this.onDisconnect.bind(this, socket))   
         emitter.emit('socket connected', socket)
     }
     

@@ -17,10 +17,23 @@ class MonitorRoom {
         emitter.on('socket disconnect', this.onDisconnect.bind(this))
     }
     
+    onCountConnections (payload, cb) {
+        logger.info('monitor.count.connections %s', this.totalConnections)
+        cb(response.success(this.totalConnections))
+    }
+    
     onConnected (socket) {
         logger.info('monitor.socket.connected.%s', socket.id)
         this.totalConnections += 1
-        this.sendTotalConnections()
+        socket.on('monitor count connections', this.onCountConnections.bind(this))
+        ConnectionsRepository.create({
+            socket_id: socket.id,
+            source: socket.handshake.query.source || 'anonimus',
+            identity_id: null
+        })
+        .then(this.onSuccessCreateConnection.bind(this, socket))
+        .catch(this.onErrorCreateConnection.bind(this, socket))
+        this.sendChangeConnections()
     }
     
     onDisconnect (idSocket) {
@@ -29,7 +42,7 @@ class MonitorRoom {
         ConnectionsRepository.deleteBySocketId(idSocket)
             .then(this.onSuccessDeleteSocket.bind(this, idSocket))
             .catch(this.onErrorDeleteSocket.bind(this, idSocket))
-        this.sendTotalConnections()
+        this.sendChangeConnections()
     }
     
     onErrorDeleteSocket (idSocket) {
@@ -62,9 +75,9 @@ class MonitorRoom {
         this.io.to('monitor').emit('socket connected', doc)
     }
     
-    sendTotalConnections () {
+    sendChangeConnections () {
         logger.info('send total connections %s', this.totalConnections)
-        this.io.to('monitor').emit('total connections', this.totalConnections)
+        this.io.in('monitor').emit('change connections', response.success(this.totalConnections))
     }
     
     countConnections (cb) {
