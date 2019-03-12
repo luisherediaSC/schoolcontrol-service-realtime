@@ -2,19 +2,47 @@ const emitter = require('../emitter')
 const logger = require('../logger')
 const response = require('../response')
 const ConnectionsRepository = require('../repositories/connections')
+const StatisticsRepository = require('../repositories/statistics')
 
 class MonitorRoom {
     
     constructor () {
         this.totalConnections = 0
-        /* simulate connectios
+        this.timeoutChangeConnections = null
+        this.timeoutMaxConnections = null
+        logger.info('monitor.setup')
+        emitter.on('statics new max connections', this.__sendNewMaxConnections.bind(this))
+        emitter.once('socketio listen', this.onSocketListen.bind(this))
+        
+        // simulations
+        // this.__simulateConnections()
+        // this.__simulateMaxConnections()
+    }
+    
+    __simulateMaxConnections () {
+        let maxConnections = 1
+        setInterval(() => {
+            this.__sendNewMaxConnections(++maxConnections)
+        }, 3000)
+    }
+    
+    __simulateConnections () {
         setInterval(() => {
             this.totalConnections += 1
             this.sendChangeConnections()
         }, 3000)
-        */
-        logger.info('monitor.setup')
-        emitter.once('socketio listen', this.onSocketListen.bind(this))
+    }
+    
+    __sendNewMaxConnections (connections) {
+        if (this.timeoutMaxConnections) {
+            return
+        }
+        setTimeout(() => {
+            logger.info('monitor.new.max.connections %s', connections)
+            this.timeoutMaxConnections = null
+            this.io.in('monitor')
+                .emit('monitor new max connections', response.success(connections))
+        }, 3000)
     }
     
     onSocketListen (io) {
@@ -28,10 +56,20 @@ class MonitorRoom {
         cb(response.success(this.totalConnections))
     }
     
+    onGetMaxConnections (payload, cb) {
+        logger.info('monitor.get.max.connections')
+        StatisticsRepository.fingGlobal().then((statistics) => {
+            cb(response.success(statistics.max_connections || 0))
+        }).catch((err) => {
+            logger.error('monitor.get.max.connections', err)
+        })
+    }
+    
     onConnected (socket) {
         logger.info('monitor.socket.connected.%s', socket.id)
         this.totalConnections += 1
         socket.on('monitor count connections', this.onCountConnections.bind(this))
+        socket.on('monitor max connections', this.onGetMaxConnections.bind(this))
         ConnectionsRepository.create({
             socket_id: socket.id,
             source: socket.handshake.query.source || 'anonimus',
@@ -82,8 +120,16 @@ class MonitorRoom {
     }
     
     sendChangeConnections () {
-        logger.info('send total connections %s', this.totalConnections)
-        this.io.in('monitor').emit('change connections', response.success(this.totalConnections))
+        if (this.timeoutChangeConnections) {
+            return
+        }
+        this.timeoutChangeConnections = setTimeout(() => {
+            logger.info('send total connections %s', this.totalConnections)
+            this.timeoutChangeConnections = null
+            this.io.in('monitor')
+                .emit('change connections', response.success(this.totalConnections))
+            StatisticsRepository.incrementMaxConnections(this.totalConnections)
+        }, 1000)
     }
     
     countConnections (cb) {
