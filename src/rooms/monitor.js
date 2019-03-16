@@ -1,6 +1,7 @@
 const emitter = require('../emitter')
 const logger = require('../logger')
 const response = require('../response')
+const enviroment = require('../enviroment')
 const ConnectionsRepository = require('../repositories/connections')
 const StatisticsRepository = require('../repositories/statistics')
 
@@ -35,7 +36,7 @@ class MonitorRoom {
     
     __sendNewMaxConnections (connections) {
         if (this.timeoutMaxConnections) {
-            return
+            clearInterval(this.timeoutMaxConnections)
         }
         setTimeout(() => {
             logger.info('monitor.new.max.connections %s', connections)
@@ -67,17 +68,34 @@ class MonitorRoom {
     
     onConnected (socket) {
         logger.info('monitor.socket.connected.%s', socket.id)
+        const source = socket.handshake.query.source || ''
+        if (!socket.handshake.query.source) {
+            logger.error('monitor.socket.connected.source.empty')
+            socket.disconnect(true)
+            return
+        }
+        if (!this.__isSourceValid(source)) {
+            logger.error('monitor.socket.connected.source.invalid')
+            socket.disconnect(true)
+            return
+        }
         this.totalConnections += 1
         socket.on('monitor count connections', this.onCountConnections.bind(this))
         socket.on('monitor max connections', this.onGetMaxConnections.bind(this))
         ConnectionsRepository.create({
             socket_id: socket.id,
-            source: socket.handshake.query.source || 'anonimus',
+            source: socket.handshake.query.source,
             identity_id: null
         })
         .then(this.onSuccessCreateConnection.bind(this, socket))
         .catch(this.onErrorCreateConnection.bind(this, socket))
         this.sendChangeConnections()
+    }
+    
+    __isSourceValid (source) {
+        return enviroment.SOURCE_VALID
+            .split(',')
+            .indexOf(source) !== -1
     }
     
     onDisconnect (idSocket) {
@@ -121,7 +139,7 @@ class MonitorRoom {
     
     sendChangeConnections () {
         if (this.timeoutChangeConnections) {
-            return
+            clearInterval(this.timeoutChangeConnections)
         }
         this.timeoutChangeConnections = setTimeout(() => {
             logger.info('send total connections %s', this.totalConnections)
