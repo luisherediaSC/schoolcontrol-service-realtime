@@ -36,7 +36,7 @@ class Sockets {
     
     onDisconnect (socket) {
         logger.info('socket disconnect %s', socket.id)        
-        emitter.emit('socket disconnect', socket.id)
+        emitter.emit('socket disconnect', socket)
     }
     
     onJoin (socket, room, cb) {

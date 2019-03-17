@@ -68,15 +68,7 @@ class MonitorRoom {
     
     onConnected (socket) {
         logger.info('monitor.socket.connected.%s', socket.id)
-        const source = socket.handshake.query.source || ''
-        if (!socket.handshake.query.source) {
-            logger.error('monitor.socket.connected.source.empty')
-            socket.disconnect(true)
-            return
-        }
-        if (!this.__isSourceValid(source)) {
-            logger.error('monitor.socket.connected.source.invalid')
-            socket.disconnect(true)
+        if (!this.__isSocketValid(socket)) {
             return
         }
         this.totalConnections += 1
@@ -92,18 +84,30 @@ class MonitorRoom {
         this.sendChangeConnections()
     }
     
-    __isSourceValid (source) {
-        return enviroment.SOURCE_VALID
-            .split(',')
-            .indexOf(source) !== -1
+    __isSocketValid (socket) {
+        console.log(socket.handshake.query)
+        const source = socket.handshake.query.source || ''
+        if (!source) {
+            logger.error('monitor.socket.connected.source.empty')
+            return false
+        }
+        if (enviroment.SOURCE_VALID.split(',')
+            .indexOf(socket.handshake.query.source) !== -1) {
+            return true
+        }
+        logger.error('monitor.socket.connected.source.invalid')
+        return false
     }
     
-    onDisconnect (idSocket) {
-        logger.info('monitor.socket.disconnect.%s', idSocket)
+    onDisconnect (socket) {
+        logger.info('monitor.socket.disconnect.%s', socket.id)
+        if (!this.__isSocketValid(socket)) {
+            return
+        }
         this.totalConnections -= 1
-        ConnectionsRepository.deleteBySocketId(idSocket)
-            .then(this.onSuccessDeleteSocket.bind(this, idSocket))
-            .catch(this.onErrorDeleteSocket.bind(this, idSocket))
+        ConnectionsRepository.deleteBySocketId(socket.id)
+            .then(this.onSuccessDeleteSocket.bind(this, socket.id))
+            .catch(this.onErrorDeleteSocket.bind(this, socket.id))
         this.sendChangeConnections()
     }
     
