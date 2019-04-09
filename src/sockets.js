@@ -8,6 +8,7 @@ const ConnectionsRepository = require('./repositories/connections')
 // rooms
 require('./rooms/monitor')
 require('./rooms/auth')
+require('./rooms/all')
 
 class Sockets {
     
