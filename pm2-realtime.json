@@ -1,0 +1,9 @@
+{
+    "apps": [
+        {
+            "name": "realtime",
+            "script": "npm",
+            "args": "run prod"
+        }
+    ]
+}
